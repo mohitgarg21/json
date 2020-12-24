@@ -1,0 +1,71 @@
+import smtplib
+import mimetypes
+from email.mime.multipart import MIMEMultipart
+from email import encoders
+from email.message import Message
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+
+    sender_address ="mohit.garg@careers360.com"
+    sender_pass = "mohit*21"
+
+    li = ["mohitgarg21051996@gmail.com", "mohitgarg.cse19@jecrc.ac.in", "mgarg2369@gmail.com"]
+    length = len(li)
+
+    for i in range(length):
+        X = li[i]
+        reciver_mail = X
+
+        print(reciver_mail)
+
+        message = MIMEMultipart()
+        message['From'] = "mohit.garg@careers360.com"
+        message['To'] = "mohitgarg21051996@gmail.com"
+        message['Cc'] = "mohitgarg.cse19@jecrc.ac.in"
+        message['Subject'] = 'CSV Files'
+
+        mail_content = "Test"
+
+        message.attach(MIMEText(mail_content, 'plain'))
+
+        filename = "schools_Date_Month.csv"
+        with open(filename, "rb") as attachment:
+            part = MIMEBase("application", "octet-stream")
+            part.set_payload(attachment.read())
+
+            encoders.encode_base64(part)
+
+            part.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+
+            message.attach(part)
+
+            filename1 = "college_courses_Date_Month.csv"
+            with open(filename1, "rb") as attachment:
+                part1 = MIMEBase("application", "octet-stream")
+                part1.set_payload(attachment.read())
+
+            encoders.encode_base64(part1)
+
+            part1.add_header('Content-Disposition', "attachment; filename= %s" % filename1)
+
+            message.attach(part1)
+
+            filename2 = "colleges_Date_Month.csv"
+            with open(filename2, "rb") as attachment:
+                part2 = MIMEBase("application", "octet-stream")
+                part2.set_payload(attachment.read())
+
+            encoders.encode_base64(part2)
+
+            part2.add_header('Content-Disposition', "attachment; filename= %s" % filename2)
+
+            message.attach(part2)
+
+            s = smtplib.SMTP('smtp.gmail.com', 587)
+            s.starttls()
+            s.login(sender_address, sender_pass)
+            text = message.as_string()
+            s.sendmail(sender_address, reciver_mail, text)
+            s.quit()
+
+            print('Mail Sent')

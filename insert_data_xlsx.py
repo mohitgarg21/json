@@ -1,0 +1,48 @@
+import threading
+from c360.exams.models import Exam
+from django.core.management.base import BaseCommand
+import pandas as pd
+from threading import *
+
+
+class Thread1(threading.Thread):
+    def __init__(self, output):
+        super(Thread1, self).__init__()
+        self.output = output
+
+    def run(self):
+        df = pd.DataFrame.from_dict(self.output)
+        for writer in df:
+            writer = df.to_excel("output2.xlsx", sheet_name='output2')
+            #df.to_excel(writer, sheet_name='output2')
+            #writer.save()
+
+class Command(BaseCommand):
+
+    def handle(self, *args, **options):
+        result1 = Exam.objects.raw("select id, super_parent_id, max(instance_id) as `instance_id` "
+                                   "from exams where super_parent_id != 0 and super_parent_id IS NOT NULL"
+                                   " group by super_parent_id order by id, instance_id asc")
+        #print(list(result1))
+        for result in result1:
+            from django.db import connectio
+            cursor = connection.cursor()
+            cursor.execute("select es.exam_id as `Exam/Instance_Id`, e.exam_name as `Instance_Exam_Paper`,"
+                           " e.super_parent_id as `Super_Parent_Id`, e2.exam_name as `Super_Parent_Exam`, "
+                           "e.instance_id, e.instance_month, e.instance_year, es.subject as `Subject_Id`, "
+                           "s.name as `Subject_Name`, es.unit_name as `Unit_Id`, u.name as `Unit_Name`, "
+                           "es.topic_name as `Topic_Id`, t.name as `Topic_Name`, es.section_marks "
+                           "from exam_syllabus as es inner join exams as e on es.exam_id = e.id inner join exams e2 "
+                           "on e.super_parent_id = e2.id left join syllabus as s on es.subject = s.id left join units as u "
+                           "on es.unit_name = u.id left join topics as t on es.topic_name = t.id"
+                           " where es.exam_id IN (" + ",".join(map(str,
+                Exam.objects.filter(super_parent_id=result.super_parent_id, instance_id=result.instance_id).values_list(
+                    'id', flat=True))) + ")")
+            columns = ["Exam/Instance_Id", "Instance_Exam_Paper", "Super_Parent_Id", "Super_Parent_Exam",
+                       "instance_id", "instance_month", "instance_year", "Subject_Id", "Subject_Name", "Unit_Id",
+                       "Unit_Name", "Topic_Id", "Topic_Name", "section_marks"]
+            output = [dict(zip(columns, row)) for row in cursor.fetchall()]
+           # print(output)
+            thread = Thread1(output)
+            thread.start()
+            thread.join()

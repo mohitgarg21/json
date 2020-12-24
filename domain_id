@@ -1,0 +1,49 @@
+from django.core.management.base import BaseCommand
+from django.shortcuts import get_object_or_404
+from c360.base.models import UrlRedirections
+from c360.college.models import Domain
+from c360.settings import settings
+import pandas as pd
+class Command(BaseCommand):
+    def handle(self, *args, **options):
+        self.redirect_oldurl_to_newurl()
+        self.stdout.write(self.style.SUCCESS('Mail Send successfully'))
+    def redirect_oldurl_to_newurl(self):
+        csv_path = settings.STATIC_ROOT + '/static/csv_files/Old_Articles_Redirection.xlsx'
+        df = pd.read_excel(csv_path)
+        domain_dic = dict(Domain.objects.values_list('old_domain_name', 'id'))
+        c = 0
+        m = 0
+        for index, row in df.iterrows():
+            m += 1
+            old_url = row.get(['old_url'])
+            new_url = row.get(['new_url'])
+            if old_url and new_url and isinstance(old_url, str) and isinstance(new_url, str):
+                c += 1
+                old_url_split = old_url.replace('https://', '').split('.com/')
+                new_url_split = new_url.replace('https://', '').split('.com/')
+                old_url_domain = old_url_split[0] + '.com'
+                new_url_domain = new_url_split[0] + '.com'
+                source_domain_id = domain_dic[old_url_domain]
+                dest_domain_id = domain_dic[new_url_domain]
+                source_url = old_url_split[1]
+                dest_url = new_url_split[1]
+                print(index, '-----------', source_domain_id, '------------', dest_domain_id)
+                try:
+                    obj = get_object_or_404(UrlRedirections, source_domain_id=source_domain_id, source=source_url)
+                    print('111111111111111111')
+                except:
+                    obj = UrlRedirections()
+                    print('222222222222222222222222222222')
+                obj.source_domain_id = source_domain_id
+                obj.source = source_url
+                obj.destination_domain_id = dest_domain_id
+                obj.destination = dest_url
+                obj.created = 1606814723
+                obj.updated = 1606814723
+                obj.created_by = 1
+                obj.updated_by = 1
+                obj.status = 1
+                obj.save()
+                print(obj)
+        print(c, '---------', m)
